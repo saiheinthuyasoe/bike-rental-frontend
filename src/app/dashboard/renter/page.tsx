@@ -19,6 +19,11 @@ export default function RenterDashboard() {
               Your Rental History
             </Link>
           </li>
+          <li>
+            <Link href="/dashboard/renter/pending" className="text-blue-500 underline">
+              Your Bike Pending
+            </Link>
+          </li>
         </ul>
       </nav>
     </div>

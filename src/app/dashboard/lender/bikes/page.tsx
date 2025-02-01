@@ -1,64 +1,100 @@
-// app/dashboard/lender/bikes/page.tsx
 "use client";
 import { useEffect, useState } from "react";
 
 export default function LenderBikes() {
   const [bikes, setBikes] = useState([]);
-  const [newBike, setNewBike] = useState({ name: "", model: "", costPerDay: 0 });
+  const [newBike, setNewBike] = useState({
+    name: "",
+    brand: "",
+    model: "",
+    pricePerHour: 0,
+  });
 
   useEffect(() => {
-    fetch("/api/bikes/lender", {
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+    fetch("http://localhost:8080/api/bikes", {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")?.trim()}`,
+      },
     })
-      .then((res) => res.json())
-      .then((data) => setBikes(data));
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        setBikes(data); // If filtering by lender is needed, do it here
+      })
+      .catch((error) => console.error("Error fetching bikes:", error));
   }, []);
 
   const addBike = async () => {
-    const res = await fetch("/api/bikes/add", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-      body: JSON.stringify(newBike),
-    });
-    if (res.ok) {
+    try {
+      const res = await fetch("http://localhost:8080/api/bikes", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")?.trim()}`,
+        },
+        body: JSON.stringify(newBike),
+      });
+
+      if (!res.ok) throw new Error("Failed to add bike");
+
       alert("Bike added successfully!");
-      setNewBike({ name: "", model: "", costPerDay: 0 });
+      setNewBike({ name: "", brand: "", model: "", pricePerHour: 0 });
       window.location.reload();
+    } catch (error) {
+      console.error("Error adding bike:", error);
+      alert("Error adding bike. Please try again.");
     }
   };
 
   const deleteBike = async (id: number) => {
-    await fetch("/api/bikes/delete", {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-      body: JSON.stringify({ id }),
-    });
-    setBikes(bikes.filter((bike: { id: number; name: string; model: string; costPerDay: number }) => bike.id !== id));
+    try {
+      const res = await fetch(`http://localhost:8080/api/bikes/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")?.trim()}`,
+        },
+      });
+
+      if (!res.ok) throw new Error("Failed to delete bike");
+
+      setBikes(bikes.filter((bike: { id: number }) => bike.id !== id));
+      alert("Bike deleted successfully!");
+    } catch (error) {
+      console.error("Error deleting bike:", error);
+      alert("Error deleting bike. Please try again.");
+    }
   };
 
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold">Your Bikes</h1>
       <ul>
-        {bikes.map((bike: { id: number; name: string; model: string; costPerDay: number }) => (
-          <li key={bike.id} className="border p-4 rounded mb-2">
-            <p className="font-semibold">{bike.name} - {bike.model}</p>
-            <p>Cost per day: ${bike.costPerDay}</p>
-            <button
-              onClick={() => deleteBike(bike.id)}
-              className="mt-2 bg-red-500 text-white p-2 rounded"
-            >
-              Delete
-            </button>
-          </li>
-        ))}
+        {bikes.map(
+          (bike: {
+            id: number;
+            name: string;
+            brand: string;
+            model: string;
+            pricePerHour: number;
+          }) => (
+            <li key={bike.id} className="border p-4 rounded mb-2">
+              <p className="font-semibold">
+                {bike.name} ({bike.brand}) - {bike.model}
+              </p>
+              <p>Price per hour: ${bike.pricePerHour}</p>
+              <button
+                onClick={() => deleteBike(bike.id)}
+                className="mt-2 bg-red-500 text-white p-2 rounded"
+              >
+                Delete
+              </button>
+            </li>
+          )
+        )}
       </ul>
+
       <h2 className="text-xl font-bold mt-6">Add New Bike</h2>
       <input
         type="text"
@@ -69,6 +105,13 @@ export default function LenderBikes() {
       />
       <input
         type="text"
+        placeholder="Brand"
+        className="border p-2 w-full mt-2"
+        value={newBike.brand}
+        onChange={(e) => setNewBike({ ...newBike, brand: e.target.value })}
+      />
+      <input
+        type="text"
         placeholder="Model"
         className="border p-2 w-full mt-2"
         value={newBike.model}
@@ -76,12 +119,17 @@ export default function LenderBikes() {
       />
       <input
         type="number"
-        placeholder="Cost Per Day"
+        placeholder="Price Per Hour"
         className="border p-2 w-full mt-2"
-        value={newBike.costPerDay}
-        onChange={(e) => setNewBike({ ...newBike, costPerDay: Number(e.target.value) })}
+        value={newBike.pricePerHour}
+        onChange={(e) =>
+          setNewBike({ ...newBike, pricePerHour: Number(e.target.value) })
+        }
       />
-      <button onClick={addBike} className="mt-4 bg-green-500 text-white p-2 rounded">
+      <button
+        onClick={addBike}
+        className="mt-4 bg-green-500 text-white p-2 rounded"
+      >
         Add Bike
       </button>
     </div>

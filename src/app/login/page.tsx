@@ -1,4 +1,3 @@
-// app/login/page.tsx
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -13,13 +12,42 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     try {
-      const res = await api.post("/auth/login", { email, password });
-      login(res.data.token);
-      router.push("/dashboard");
-    } catch (error) {
-      console.error("Login failed", error);
-      alert("Login failed");
+      const response: { data: { token: string; role?: string } } = await api.post("/auth/login", { email, password });
+      console.log("API response:", response.data);
+      
+      // Retrieve token and role from the response
+      const token = response.data.token ? response.data.token : response.data;
+      // This will default to "USER" if role is missing.
+      const role: string = response.data.role || "";
+
+      console.log("Extracted role:", role);
+
+      if (typeof token !== "string" || token.trim() === "") {
+        throw new Error("Invalid token received");
+      }
+
+      // Save token and role in local storage
+      localStorage.setItem("token", token);
+      localStorage.setItem("role", role.toUpperCase()); // Ensure uppercase for consistency
+
+      // Update auth store if necessary
+      login(token);
+      
+      // Redirect based on role
+      if (role.toUpperCase() === "ADMIN") {
+        router.push("/dashboard/admin");
+      } else if (role.toUpperCase() === "LENDER") {
+        router.push("/dashboard/lender");
+      } else if (role.toUpperCase() === "RENTER") {
+        router.push("/dashboard/renter");
+      } else {
+        router.push("/dashboard");
+      }
+    } catch (error: any) {
+      console.error("Login failed:", error.response?.data || error.message);
+      alert("Login failed: " + (error.response?.data?.message || error.message));
     }
   };
 
